@@ -5,7 +5,8 @@ import logging
 if __name__ == '__main__':
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format='[%(asctime)s] %(name)s %(levelname)s: %(message)s',
+        datefmt='%d-%m-%Y %H:%M:%S'
     )
 
     crypto_client = CryptoBotClient()
@@ -15,6 +16,7 @@ if __name__ == '__main__':
         ticks = crypto_client.get_ticks('BTCUSDT')
         last_rsi_tick = ticks['RSI'].iloc[-1]
         previous_rsi_tick = ticks['RSI'].iloc[-2]
+        logging.info(f'RSI: {last_rsi_tick}')
         last_price = ticks['Close'].iloc[-1]
         if last_rsi_tick <= 40 and previous_rsi_tick > 40:
             crypto_client.market_order('BTCUSDT', 'BUY', '0.05')
