@@ -53,7 +53,7 @@ class CryptoBotClient:
                 'type': 'MARKET',
                 'quantity': quantity,
             }
-            self.trades.append(Trade(**params))
+            self.trades.append(Trade(self.client, **params))
 
     @staticmethod
     def get_rsi(price: pd.Series, periods: int = 14, ema: bool = True):

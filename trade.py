@@ -34,7 +34,7 @@ class Trade:
         try:
             self.info = self.client.new_order(**self.params)
             if self.params['side'] == 'BUY':
-                self.set_stop_loss(stop_price=self.price * 0.975, tp_price=self.price * 1.025)
+                self.set_stop_loss(stop_price=round(self.price * 0.975, 2), tp_price=round(self.price * 1.01, 2))
             self.__logger.info(f"Wykonano zlecenie {self.side} - {self.quantity} {self.symbol} @ {self.price}")
         except ClientError as e:
             self.__logger.error(f'Nie udalo sie wykonac zlecenia: {e}')
@@ -45,9 +45,9 @@ class Trade:
 
     def update_stop_loss(self):
         self.cancel_order(self.symbol, self.stop_loss_id)
-        curr_price = self.client.avg_price(self.symbol)
-        stop_price = curr_price * 0.975
-        tp_price = curr_price * 1.025
+        curr_price = float(self.client.avg_price(self.symbol)['price'])
+        stop_price = round(curr_price * 0.975, 2)
+        tp_price = round(curr_price * 1.025, 2)
         self.set_stop_loss(stop_price=stop_price, tp_price=tp_price)
         self.__logger.info(f'Zaktualizowano Stop Lossa: nowy SL @ {stop_price}')
 
@@ -67,7 +67,7 @@ class Trade:
 
     @property
     def quantity(self):
-        return self.params['quantity']
+        return float(self.params['quantity'])
 
     @property
     def symbol(self):
@@ -75,12 +75,12 @@ class Trade:
 
     @property
     def price(self):
-        return self.info['fills']['price']
+        return float(self.info['fills'][0]['price'])
 
     @property
     def trade_id(self):
-        return self.info['orderId']
+        return int(self.info['orderId'])
 
     @property
     def stop_loss_id(self):
-        return self.stop_loss['orderId']
+        return int(self.stop_loss['orderId'])
