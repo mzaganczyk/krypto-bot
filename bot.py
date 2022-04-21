@@ -2,6 +2,7 @@ import json
 import pandas as pd
 import logging
 from binance.spot import Spot as Client
+from trade import Trade
 from binance.error import ClientError
 from operator import itemgetter
 
@@ -11,8 +12,7 @@ class CryptoBotClient:
         self.__get_credentials()
         self.__connection = False  # okreslanie czy jest uzyskane polaczenie z binance
         self.__logger = logging.getLogger('crypto_bot')
-        self.trades = {}
-        self.stop_losses = {}
+        self.trades = []
 
     def __get_credentials(self):
         with open('config.json', 'r') as f:
@@ -45,50 +45,15 @@ class CryptoBotClient:
         tmp['usd_balance'] = tmp['price'] * tmp['free'] + tmp['price'] * tmp['locked']
         return tmp
 
-    def __add_to_trades(self, data: dict):
-        order_data = {}
-        order_data['price'] = data['fills']['price']
-        keys = ['symbol', 'type', 'side', 'origQty']
-        order_data = {**{key: data[key] for key in keys}, **order_data}
-        self.trades[self.__trade_id] = order_data
-
-    def __add_stop_loss(self, data: dict):
-        sl_data = data
-        self.stop_losses[self.__trade_id] = sl_data
-
     def market_order(self, symbol: str, side: str, quantity: float):
-        params = {
-            'symbol': f'{symbol}',
-            'side': f'{side}',
-            'type': 'MARKET',
-            'quantity': quantity
-        }
-        try:
-            data = self.client.new_order(**params)
-            self.__add_to_trades(data)
-            order_price = self.trades[-1]['price']
-            self.stop_loss_limit(symbol, quantity, 0.99 * order_price, order_price * 1.025)
-            self.__trade_id += 1
-            self.__logger.info(f'Wykonano zlecenie {side} - {quantity} {symbol} @ {order_price}')
-        except ClientError as e:
-            self.__logger.error(f'Nie udalo sie wykonac zlecenia: {e}')
-
-    def stop_loss_limit(self, symbol: str, quantity: float, stopPrice: float, price: float):
-        params = {
-            'symbol': f'{symbol}',
-            'side': 'SELL',
-            'type': 'STOP_LOSS_LIMIT',
-            'quantity': quantity,
-            'stopPrice': stopPrice,
-            'price': price,
-            'timeInForce': 'GTC'
-        }
-        try:
-            data = self.client.new_order(**params)
-            self.__logger.info(f'STOP LOSS USTAWIONY - {quantity} {symbol} @ {stopPrice}')
-            self.__add_stop_loss(data)
-        except ClientError as e:
-            self.__logger.error(f'Nie udalo sie wykonac zlecenia: {e}')
+        if side == 'BUY':
+            params = {
+                'symbol': symbol,
+                'side': side,
+                'type': 'MARKET',
+                'quantity': quantity,
+            }
+            self.trades.append(Trade(**params))
 
     @staticmethod
     def get_rsi(price: pd.Series, periods: int = 14, ema: bool = True):
